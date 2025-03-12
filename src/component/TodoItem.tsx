@@ -32,7 +32,7 @@ export const TodoItem: React.FC<Props> = ({ todo, loading, onRemoveTodo }) => {
         type="button"
         className="todo__remove"
         data-cy="TodoDelete"
-        onClick={() => onRemoveTodo(todo.id)}
+        onClick={() => onRemoveTodo(id)}
       >
         ×
       </button>
@@ -47,4 +47,3 @@ export const TodoItem: React.FC<Props> = ({ todo, loading, onRemoveTodo }) => {
     </div>
   );
 };
-//new

@@ -32,6 +32,11 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     loadTodos();
+    // Set initial focus when component mounts
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+
     const timer = setTimeout(() => {
       setErrorMessage('');
     }, 3000);
@@ -40,25 +45,41 @@ export const App: React.FC = () => {
   }, []);
 
   const onAddTodo = async (todoTitle: string) => {
+    // Check if title is empty
+    if (!todoTitle.trim()) {
+      setErrorMessage('Title should not be empty');
+
+      return;
+    }
+
     setTempTodo({
       id: 0,
-      title: todoTitle,
+      title: todoTitle.trim(),
       completed: false,
       userId: todoService.USER_ID,
     });
 
     try {
       const newTodo = await todoService.createTodos({
-        title: todoTitle,
+        title: todoTitle.trim(),
         completed: false,
       });
 
       setTodos(prev => [...prev, newTodo]);
+
+      if (inputRef.current) {
+        inputRef.current.value = '';
+      }
     } catch (error) {
       setErrorMessage('Unable to add a todo');
-      inputRef?.current?.focus();
+      if (inputRef.current) {
+        inputRef.current.value = todoTitle.trim();
+      }
     } finally {
       setTempTodo(null);
+      if (inputRef.current) {
+        inputRef.current.focus();
+      }
     }
   };
 
@@ -79,6 +100,27 @@ export const App: React.FC = () => {
       });
     }
   };
+
+  const onClearCompleted = async () => {
+    const errorMessages: string[] = [];
+
+    await Promise.all(
+      completedTodos.map(async todo => {
+        try {
+          await todoService.deleteTodo(todo.id);
+          setTodos(prevTodos => prevTodos.filter(t => t.id !== todo.id));
+        } catch (error) {
+          errorMessages.push(`Unable to delete todo with id: ${todo.id}`);
+        }
+      }),
+    );
+
+    if (errorMessages.length > 0) {
+      setErrorMessage(errorMessages.join(', '));
+    }
+  };
+
+  const hasCompletedTodos = completedTodos.length > 0;
 
   if (!todoService) {
     return <UserWarning />;
@@ -116,11 +158,19 @@ export const App: React.FC = () => {
           />
         )}
       </div>
+
       <Notification
         errorMessage={errorMessage}
         onClose={() => setErrorMessage('')}
       />
+
+      <button
+        disabled={!hasCompletedTodos}
+        onClick={onClearCompleted}
+        className="clear-completed-button"
+      >
+        Clear completed
+      </button>
     </div>
   );
 };
-//new
