@@ -32,7 +32,6 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     loadTodos();
-    // Set initial focus when component mounts
     if (inputRef.current) {
       inputRef.current.focus();
     }
@@ -45,19 +44,21 @@ export const App: React.FC = () => {
   }, []);
 
   const onAddTodo = async (todoTitle: string) => {
-    // Check if title is empty
     if (!todoTitle.trim()) {
       setErrorMessage('Title should not be empty');
 
       return;
     }
 
-    setTempTodo({
+    const newTempTodo = {
       id: 0,
       title: todoTitle.trim(),
       completed: false,
       userId: todoService.USER_ID,
-    });
+    };
+
+    setTempTodo(newTempTodo);
+    setTodos(prev => [...prev, newTempTodo]);
 
     try {
       const newTodo = await todoService.createTodos({
@@ -65,7 +66,7 @@ export const App: React.FC = () => {
         completed: false,
       });
 
-      setTodos(prev => [...prev, newTodo]);
+      setTodos(prev => prev.map(todo => (todo.id === 0 ? newTodo : todo)));
 
       if (inputRef.current) {
         inputRef.current.value = '';
