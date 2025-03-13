@@ -102,27 +102,6 @@ export const App: React.FC = () => {
     }
   };
 
-  const onClearCompleted = async () => {
-    const errorMessages: string[] = [];
-
-    await Promise.all(
-      completedTodos.map(async todo => {
-        try {
-          await todoService.deleteTodo(todo.id);
-          setTodos(prevTodos => prevTodos.filter(t => t.id !== todo.id));
-        } catch (error) {
-          errorMessages.push(`Unable to delete todo with id: ${todo.id}`);
-        }
-      }),
-    );
-
-    if (errorMessages.length > 0) {
-      setErrorMessage(errorMessages.join(', '));
-    }
-  };
-
-  const hasCompletedTodos = completedTodos.length > 0;
-
   if (!todoService) {
     return <UserWarning />;
   }
@@ -164,14 +143,6 @@ export const App: React.FC = () => {
         errorMessage={errorMessage}
         onClose={() => setErrorMessage('')}
       />
-
-      <button
-        disabled={!hasCompletedTodos}
-        onClick={onClearCompleted}
-        className="clear-completed-button"
-      >
-        Clear completed
-      </button>
     </div>
   );
 };
