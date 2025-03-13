@@ -5,7 +5,7 @@ import { TodoItem } from './TodoItem';
 type Props = {
   preparedTodos: Todo[] | null;
   errorMessage: string;
-  loading: Set<number>;
+  loading: number[];
   onRemoveTodo: (id: number) => Promise<void>;
 };
 
@@ -17,17 +17,15 @@ export const TodoList: React.FC<Props> = ({
 }) => {
   return (
     <section className="todoapp__main" data-cy="TodoList">
-      {errorMessage && <div className="error-message">{errorMessage}</div>}
-
       {preparedTodos?.map(todo => (
         <TodoItem
           key={todo.id}
           todo={todo}
-          loading={loading.has(todo.id)}
+          errorMessage={errorMessage}
+          loading={loading.includes(todo.id)}
           onRemoveTodo={onRemoveTodo}
         />
       ))}
     </section>
   );
 };
-//new

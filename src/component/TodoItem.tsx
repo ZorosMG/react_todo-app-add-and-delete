@@ -7,6 +7,7 @@ type Props = {
   todo: Todo;
   loading?: boolean;
   onRemoveTodo: (id: number) => Promise<void>;
+  errorMessage: string;
 };
 
 export const TodoItem: React.FC<Props> = ({ todo, loading, onRemoveTodo }) => {
@@ -32,7 +33,7 @@ export const TodoItem: React.FC<Props> = ({ todo, loading, onRemoveTodo }) => {
         type="button"
         className="todo__remove"
         data-cy="TodoDelete"
-        onClick={() => onRemoveTodo(id)}
+        onClick={() => onRemoveTodo(todo.id)}
       >
         ×
       </button>

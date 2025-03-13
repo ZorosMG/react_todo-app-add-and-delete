@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { UserWarning } from './UserWarning';
 import { getPreparedTodos } from './utils/TodoFilter';
 import * as todoService from './api/todos';
@@ -8,15 +8,15 @@ import { TodoForm } from './component/TodoForm';
 import { TodoList } from './component/TodoList';
 import { Footer } from './component/Footer';
 import { Notification } from './component/Notification';
+import { TodoItem } from './component/TodoItem';
 
 export const App: React.FC = () => {
   const [todos, setTodos] = useState<Todo[]>([]);
-  const [loading, setLoading] = useState<Set<number>>(new Set());
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [filterBy, setFilterBy] = useState(Filter.All);
   const [tempTodo, setTempTodo] = useState<Todo | null>(null);
-
-  const inputRef = useRef<HTMLInputElement>(null);
+  const [loading, setLoading] = useState<number[]>([]);
+  const inputRef = useRef<HTMLInputElement | null>(null);
 
   const preparedTodos = getPreparedTodos(todos, filterBy);
   const completedTodos = todos.filter(todo => todo.completed);
@@ -31,90 +31,72 @@ export const App: React.FC = () => {
   };
 
   useEffect(() => {
-    loadTodos();
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
-
     const timer = setTimeout(() => {
       setErrorMessage('');
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [errorMessage]);
 
-  const onAddTodo = async (todoTitle: string) => {
-    if (!todoTitle.trim()) {
-      setErrorMessage('Title should not be empty');
-
-      return;
-    }
-
-    const newTempTodo = {
-      id: 0,
-      title: todoTitle.trim(),
-      completed: false,
-      userId: todoService.USER_ID,
-    };
-
-    setTempTodo(newTempTodo);
-    setTodos(prev => [...prev, newTempTodo]);
-
-    try {
-      const newTodo = await todoService.createTodos({
-        title: todoTitle.trim(),
-        completed: false,
-      });
-
-      setTodos(prev => prev.map(todo => (todo.id === 0 ? newTodo : todo)));
-
-      if (inputRef.current) {
-        inputRef.current.value = '';
-      }
-    } catch (error) {
-      setErrorMessage('Unable to add a todo');
-      if (inputRef.current) {
-        inputRef.current.value = todoTitle.trim();
-      }
-    } finally {
-      setTempTodo(null);
-      if (inputRef.current) {
-        inputRef.current.focus();
-      }
-    }
-  };
-
-  const onRemoveTodo = async (id: number) => {
-    setLoading(prev => new Set(prev.add(id)));
-    try {
-      await todoService.deleteTodo(id);
-      setTodos(todos.filter(todo => todo.id !== id));
-    } catch (error) {
-      setErrorMessage('Unable to delete a todo');
-    } finally {
-      setLoading(prev => {
-        const newLoading = new Set(prev);
-
-        newLoading.delete(id);
-
-        return newLoading;
-      });
-    }
-  };
+  useEffect(loadTodos, []);
 
   if (!todoService) {
     return <UserWarning />;
   }
 
+  const addTodo = async (todoTitle: string) => {
+    setTempTodo({
+      id: 0,
+      title: todoTitle,
+      completed: false,
+      userId: todoService.USER_ID,
+    });
+
+    try {
+      const newTodo = await todoService.createTodos({
+        title: todoTitle,
+        completed: false,
+      });
+
+      setTodos(prev => [...prev, newTodo]);
+    } catch (error) {
+      setErrorMessage('Unable to add a todo');
+      inputRef?.current?.focus();
+      throw error;
+    } finally {
+      setTempTodo(null);
+    }
+  };
+
+  const onRemoveTodo = async (todoId: number) => {
+    setLoading(prev => [...prev, todoId]);
+
+    try {
+      await todoService.deleteTodo(todoId);
+
+      setTodos(prev => prev.filter(todo => todo.id !== todoId));
+    } catch (error) {
+      setErrorMessage('Unable to delete a todo');
+      inputRef?.current?.focus();
+    } finally {
+      setLoading(prev => prev.filter(id => id !== todoId));
+    }
+  };
+
+  const onClearTodo = async () => {
+    completedTodos.forEach(todo => onRemoveTodo(todo.id));
+  };
+
   return (
     <div className="todoapp">
       <h1 className="todoapp__title">todos</h1>
+
       <div className="todoapp__content">
         <header className="todoapp__header">
           <TodoForm
             todos={todos}
             setErrorMessage={setErrorMessage}
-            onAddTodo={onAddTodo}
+            onAddTodo={addTodo}
             inputRef={inputRef}
             todosLength={todos.length}
             isTitleDisabled={!!tempTodo}
@@ -127,6 +109,14 @@ export const App: React.FC = () => {
           loading={loading}
           onRemoveTodo={onRemoveTodo}
         />
+        {tempTodo && (
+          <TodoItem
+            todo={tempTodo}
+            onRemoveTodo={onRemoveTodo}
+            loading
+            errorMessage={''}
+          />
+        )}
 
         {!errorMessage && (
           <Footer
@@ -135,6 +125,7 @@ export const App: React.FC = () => {
             setFilterBy={setFilterBy}
             filterBy={filterBy}
             todoCount={todoCount}
+            onClearTodo={onClearTodo}
           />
         )}
       </div>
